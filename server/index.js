@@ -5,7 +5,7 @@
 
 import express from 'express';
 import cors from 'cors';
-
+import pool from './db.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -60,35 +60,70 @@ app.get('/api/health', (req, res) => {
 });
 
 // Artisans endpoint
-app.get('/api/artisans', (req, res) => {
-  res.json({ success: true, count: artisans.length, data: artisans });
+app.get('/api/artisans', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        ap.id,
+        u.full_name AS name,
+        u.avatar_url AS avatar,
+        ap.craft_category AS category,
+        ap.village || ', ' || ap.state AS location,
+        ap.experience_years,
+        ap.heritage_lineage,
+        ap.verification_status,
+        ap.bio_story,
+        lr.id AS "loanId",
+        lr.title AS "loanTitle",
+        lr.goal_amount AS "fundingGoal",
+        lr.amount_raised AS "amountRaised",
+        lr.status AS "loanStatus"
+      FROM artisan_profiles ap
+      JOIN users u ON u.id = ap.user_id
+      LEFT JOIN loan_requests lr ON lr.artisan_id = ap.id
+      ORDER BY lr.amount_raised DESC
+    `);
+
+    res.json({ success: true, count: result.rows.length, data: result.rows });
+  } catch (err) {
+    console.error('Database query error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch artisans from database' });
+  }
 });
 
 // Contribute endpoint
-app.post('/api/contribute', (req, res) => {
+app.post('/api/contribute', async (req, res) => {
   const { artisanId, amount, supporterName, paymentMethod } = req.body;
-  if (!artisanId || !amount) {
-    return res.status(400).json({ error: 'artisanId and amount are required' });
+
+  try {
+    const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+    const blockNumber = 19842100 + Math.floor(Math.random() * 50);
+
+    // Save contribution into PostgreSQL table
+    const result = await pool.query(`
+      INSERT INTO contributions (loan_id, supporter_id, amount, payment_method, blockchain_tx_hash, block_number)
+      VALUES (
+        'e1111111-1111-1111-1111-111111111111', 
+        'c1111111-1111-1111-1111-111111111111', 
+        $1, 
+        $2, 
+        $3, 
+        $4
+      )
+      RETURNING *
+    `, [Number(amount), paymentMethod || 'UPI', txHash, blockNumber]);
+
+    console.log(` Saved ₹${amount} contribution to PostgreSQL from ${supporterName || 'Supporter'}!`);
+
+    res.json({
+      success: true,
+      message: 'Contribution successfully saved in PostgreSQL database!',
+      contribution: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Database error on contribute:', err.message);
+    res.status(500).json({ error: 'Failed to save to database' });
   }
-
-  const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-  const newTx = {
-    txHash,
-    blockNumber: 19842100 + Math.floor(Math.random() * 50),
-    type: 'CONTRIBUTION',
-    artisanId,
-    supporterName: supporterName || 'Anonymous Supporter',
-    amount: Number(amount),
-    paymentMethod: paymentMethod || 'UPI',
-    timestamp: new Date().toISOString()
-  };
-
-  transactions.unshift(newTx);
-  res.json({
-    success: true,
-    message: 'Demo contribution successfully registered on blockchain ledger',
-    transaction: newTx
-  });
 });
 
 // Auth endpoint

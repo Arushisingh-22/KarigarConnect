@@ -100,9 +100,16 @@ export const FundingProvider = ({ children }) => {
   };
 
   // Contribute to Artisan
-  const contribute = (artisanId, amount, paymentMethod = 'UPI', supporterName = 'Vikram Sen') => {
+   const contribute = async (artisanId, amount, paymentMethod = 'UPI', supporterName = 'Vikram Sen') => {
     const numAmount = Number(amount);
     if (!numAmount || numAmount <= 0) return null;
+
+    // Send to our PostgreSQL backend!
+    fetch('http://localhost:5000/api/contribute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artisanId, amount: numAmount, supporterName, paymentMethod })
+    }).catch(err => console.error('Failed to save to database:', err));
 
     let targetArtisan = null;
 
