@@ -1,186 +1,168 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { X, User, ShieldCheck, Sparkles, ArrowRight, Check } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { AlertCircle, CheckCircle2, Loader2, LogIn, UserPlus, X } from 'lucide-react';
+import { signInWithPassword, signUpWithPassword } from '../lib/supabase';
+import { useLanguage } from '../i18n';
 
-export const AuthModal = () => {
-  const { isAuthModalOpen, closeAuthModal, authModalTab, loginAs, loginWithCredentials } = useAuth();
-  
-  const [tab, setTab] = useState(authModalTab || 'login');
-  const [role, setRole] = useState('SUPPORTER');
+export default function AuthModal({ isOpen, onClose, isConfigured, onOpenSettings, onAuthSuccess }) {
+  const { t } = useLanguage();
+  const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  if (!isAuthModalOpen) return null;
+  if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    loginWithCredentials(email || 'demo@karigarconnect.in', password, role);
+  const changeMode = (nextMode) => {
+    setMode(nextMode);
+    setErrorMessage('');
+    setSuccessMessage('');
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    if (!isConfigured) {
+      setErrorMessage(t('Connect Supabase before signing in or creating an account.'));
+      return;
+    }
+
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setErrorMessage(t('Enter a valid email address.'));
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMessage(t('Password must be at least 6 characters.'));
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = mode === 'signin'
+        ? await signInWithPassword(normalizedEmail, password)
+        : await signUpWithPassword(normalizedEmail, password);
+
+      if (result.error) {
+        setErrorMessage(result.error);
+      } else if (mode === 'signup' && !result.data?.session) {
+        setSuccessMessage(t('Account created. Check your email to confirm it, then sign in.'));
+      } else if (result.data?.session) {
+        onAuthSuccess(result.data.session);
+        onClose();
+      } else {
+        setErrorMessage(t('Authentication completed without an active session. Please try signing in.'));
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t('Unable to complete authentication.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="bg-[#FFFFFF] w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-[#D5B46A]/40 relative"
-      >
-        {/* Close Button */}
-        <button
-          onClick={closeAuthModal}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-[#F5EFE4] flex items-center justify-center text-[#263B36] hover:bg-[#C7794A] hover:text-white transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* Modal Header */}
-        <div className="bg-[#173B35] text-white p-6 pb-5">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#D5B46A] uppercase tracking-wider mb-1">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>NOVEX Hackathon 2026 Portal</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
+      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-5 border-b border-stone-100 bg-amber-50/50">
+          <div>
+            <h2 className="font-bold text-lg text-stone-900">
+              {mode === 'signin' ? t('Sign in to KarigarConnect') : t('Create a KarigarConnect account')}
+            </h2>
+            <p className="text-xs text-stone-500">{t('Authentication is handled by your configured Supabase project.')}</p>
           </div>
-          <h2 className="font-serif text-2xl font-bold">
-            Welcome to KarigarConnect
-          </h2>
-          <p className="text-xs text-[#FAF6F0]/80 mt-1">
-            Sign in to manage artisan loans or monitor your social impact patronage.
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition-colors"
+            aria-label={t('Close')}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {!isConfigured && (
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded-xl">
+              <p>{t('Connect a Supabase project to use account registration and sign in.')}</p>
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                className="mt-2 text-xs font-bold underline"
+              >
+                {t('Open database settings')}
+              </button>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="auth-email" className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+              {t('Email address')}
+            </label>
+            <input
+              id="auth-email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-700"
+            />
+          </div>
+          <div>
+            <label htmlFor="auth-password" className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+              {t('Password')}
+            </label>
+            <input
+              id="auth-password"
+              type="password"
+              required
+              minLength="6"
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-700"
+            />
+          </div>
+
+          {errorMessage && (
+            <div role="alert" className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-xl">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+          {successMessage && (
+            <div role="status" className="flex items-start gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{successMessage}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !isConfigured}
+            className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl font-bold text-sm shadow-md transition-all disabled:opacity-50"
+          >
+            {isSubmitting
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : mode === 'signin' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+            {isSubmitting ? t('Please wait...') : mode === 'signin' ? t('Sign in') : t('Create account')}
+          </button>
+
+          <p className="text-center text-xs text-stone-600">
+            {mode === 'signin' ? t('Need an account?') : t('Already have an account?')}{' '}
+            <button
+              type="button"
+              onClick={() => changeMode(mode === 'signin' ? 'signup' : 'signin')}
+              className="font-bold text-amber-800 hover:underline"
+            >
+              {mode === 'signin' ? t('Create account') : t('Sign in')}
+            </button>
           </p>
-
-          {/* Quick 1-Click Demo Buttons for Hackathon Judges */}
-          <div className="mt-4 pt-3 border-t border-white/10 space-y-2">
-            <p className="text-[11px] text-[#D5B46A] font-bold">
-              ⚡ Instant 1-Click Demo Access for Judges:
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => loginAs('ARTISAN')}
-                className="py-2 px-2.5 rounded-xl bg-[#FAF6F0] hover:bg-white text-[#173B35] text-xs font-bold text-left flex items-center gap-2 border border-[#D5B46A]/40 shadow-xs transition-transform active:scale-95"
-              >
-                <span className="text-base">🎨</span>
-                <div className="leading-tight truncate">
-                  <div className="truncate font-bold">Lakshmi Devi</div>
-                  <div className="text-[10px] text-[#263B36]/60 font-normal">Rural Artisan</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => loginAs('SUPPORTER')}
-                className="py-2 px-2.5 rounded-xl bg-[#C7794A] hover:bg-[#B56738] text-white text-xs font-bold text-left flex items-center gap-2 shadow-xs transition-transform active:scale-95"
-              >
-                <span className="text-base">🤝</span>
-                <div className="leading-tight truncate">
-                  <div className="truncate font-bold">Vikram Sen</div>
-                  <div className="text-[10px] text-[#FAF6F0]/80 font-normal">Urban Supporter</div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Form Body */}
-        <div className="p-6">
-          {/* Tabs */}
-          <div className="flex rounded-xl bg-[#FAF6F0] p-1 mb-5 border border-[#D5B46A]/30">
-            <button
-              onClick={() => setTab('login')}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                tab === 'login' ? 'bg-[#173B35] text-white shadow-xs' : 'text-[#263B36]/70'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => setTab('register')}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                tab === 'register' ? 'bg-[#173B35] text-white shadow-xs' : 'text-[#263B36]/70'
-              }`}
-            >
-              Create Account
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Role selector */}
-            <div>
-              <label className="text-[11px] font-bold text-[#173B35] uppercase tracking-wider block mb-1">
-                Account Type
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRole('SUPPORTER')}
-                  className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 ${
-                    role === 'SUPPORTER'
-                      ? 'border-[#C7794A] bg-[#C7794A]/10 text-[#C7794A] font-bold'
-                      : 'border-[#E7DEC9] text-[#263B36]/70'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5" />
-                  Supporter / Backer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('ARTISAN')}
-                  className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 ${
-                    role === 'ARTISAN'
-                      ? 'border-[#173B35] bg-[#173B35]/10 text-[#173B35] font-bold'
-                      : 'border-[#E7DEC9] text-[#263B36]/70'
-                  }`}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Rural Artisan
-                </button>
-              </div>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="text-xs text-[#263B36]/70 block mb-1">Email Address</label>
-              <input
-                type="email"
-                required
-                placeholder={role === 'ARTISAN' ? 'artisan@karigarconnect.in' : 'supporter@gmail.com'}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl bg-[#FAF6F0] border border-[#D5B46A]/40 focus:outline-hidden focus:border-[#C7794A] text-[#173B35]"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="text-xs text-[#263B36]/70 block mb-1">Password</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl bg-[#FAF6F0] border border-[#D5B46A]/40 focus:outline-hidden focus:border-[#C7794A] text-[#173B35]"
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] text-[#263B36]/70 pt-1">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" defaultChecked className="rounded text-[#C7794A]" />
-                <span>Remember session</span>
-              </label>
-              <a href="#reset" onClick={(e) => e.preventDefault()} className="text-[#C7794A] hover:underline">
-                Forgot password?
-              </a>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-[#173B35] hover:bg-[#0F2622] text-[#FAF6F0] font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md shadow-[#173B35]/20"
-            >
-              <span>{tab === 'login' ? 'Sign In to KarigarConnect' : 'Register Profile'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
-      </motion.div>
+        </form>
+      </div>
     </div>
   );
-};
+}

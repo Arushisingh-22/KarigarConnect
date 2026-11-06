@@ -1,103 +1,37 @@
-# KarigarConnect — Empowering Artisans Through Opportunity
+# KarigarConnect
 
-> **NOVEX Hackathon 2026 — Social Impact Category**  
-> A blockchain-backed micro-lending platform directly connecting rural Indian artisans with conscious urban supporters. Eliminating exploitative middlemen and preserving India's living cultural heritage.
+KarigarConnect is a frontend prototype for discovering artisan profiles and following community support for their funding requests.
 
----
+## Features
 
-## 🎨 Theme & Exact Color Palette
-- **Forest Green:** `#173B35` (Primary navigation, headers, accents)
-- **Warm Cream:** `#F5EFE4` (Primary background, warmth)
-- **Terracotta:** `#C7794A` (Primary CTA buttons, interactive elements)
-- **Muted Gold:** `#D5B46A` (Badges, verified indicators, royal accents)
-- **Dark Text:** `#263B36` (Typography, body)
-- **White:** `#FFFFFF` (Cards, elevated panels)
+- Browse and search artisan profiles by name, location, and craft.
+- View artisan-provided profile details and funding progress.
+- Register profiles with a short story draft based only on the entered details.
+- Switch between English and Hindi; the selected language is saved in the browser.
+- Optionally connect Supabase to load and save artisan profiles.
+- Sign in or create an account through Supabase Auth when a project is connected.
 
----
+This prototype does not process payments or repayments; support actions update displayed funding totals only. Without a database connection, profiles and support added during a session are not saved after refresh. No sample artisan records are included.
 
-## 🛠️ Technology Stack
-- **Frontend:** React 18 (Vite)
-- **Styling:** Tailwind CSS + Custom Responsive Design System
-- **Animations:** Framer Motion (Page transitions, scroll reveals, stats spring counters, card lift)
-- **Icons:** Lucide React
-- **Celebration Effects:** Canvas Confetti
-- **Backend API:** Node.js + Express.js (`server/index.js`)
-- **Database Schema:** PostgreSQL (`server/schema.sql`)
-- **Blockchain / Smart Contracts:** Ethereum Solidity (`contracts/KarigarLoanEscrow.sol`)
-- **Authentication:** JWT simulation with 1-click dual role switching (Artisan vs Supporter)
+Account registration and sign-in require a configured Supabase project with Email authentication enabled. Supabase email-confirmation settings may require the user to confirm an address before signing in. Artisan profile creation and funding-total updates also require the Supabase `artisans` table and appropriate Row Level Security policies for the project's public/client key. Authentication alone does not grant permission to modify artisan records. No separate login page or client-side routes are currently part of this single-page frontend.
 
----
+## Run locally
 
-## 🚀 Key Pages & Features
-1. **Home Page (`/`)**:
-   - Hero banner: *"Empowering Artisans. Connecting Opportunities."*
-   - Floating live funding cards & blockchain status badges
-   - Animated statistics counters (₹48.5L+ Disbursed, 99.2% Repayment Rate, 520+ Artisans, 0% Middlemen Cut)
-   - Curated featured artisan cards
-   - 5-step model overview
-   - Live simulated Ethereum transaction stream
-   - Testimonials & Call-to-action
-2. **About Us (`/about`)**:
-   - Problem statement & challenges (middlemen taking 60–80%, moneylenders at 36–48% APR)
-   - KarigarConnect zero-middleman micro-lending solution
-   - Before vs After comparison
-   - Mission, Vision & Cultural Preservation
-3. **Explore Artisans Marketplace (`/explore`)**:
-   - Live search by artisan name, craft, or state
-   - Craft category filters: Handloom, Pottery, Embroidery, Woodcraft, Handmade Jewellery, Traditional Crafts
-   - Sorting by funding %, most backers, or smallest goal
-   - Interactive artisan cards with progress indicators
-4. **Artisan Detail Profile (`/artisan/:id`)**:
-   - High-resolution craft gallery
-   - Artisan story, family heritage & GI certification badge
-   - Itemized Use of Funds breakdown (materials, tools, exhibition)
-   - Flexible zero-interest repayment schedule
-   - Direct "Fund This Artisan" trigger
-5. **Funding Experience (`/funding`)**:
-   - Interactive micro-capital allocation
-   - Preset amounts (₹500, ₹1000, ₹2500, ₹5000) or custom input
-   - Simulated payment rails (UPI / QR, Web3 Sepolia ETH, Netbanking)
-   - Real-time impact calculator
-   - Instant cryptographic transaction receipt & block confirmation
-6. **How It Works (`/how-it-works`)**:
-   - Interactive 5-step visual flow: Registration ➔ Verification ➔ Funding ➔ Blockchain Record ➔ Repayment & Growth
-   - Lifecycle of a ₹10,000 Micro-Loan economic breakdown
-7. **Blockchain Transparency (`/blockchain`)**:
-   - Live interactive Block Explorer with search and filter
-   - Smart contract code viewer for `KarigarLoanEscrow.sol` with 1-click copy
-   - Real-time transaction feed
-8. **Dual-Role Dashboard (`/dashboard`)**:
-   - **Artisan View:** Profile completion score (94%), loan goal tracking, raw material inventory status, and interactive "Record Demo Repayment" button.
-   - **Supporter View:** Total contributed, supported artisans portfolio, active loan repayments, and downloadable Certificate of Micro-Patronage.
-9. **Impact (`/impact`)**:
-   - 4 Major Strategic Pillars: Financial Inclusion, Artisan Business Growth, Social & Cultural Impact, Transparency & Trust
-   - Projected outcomes for NOVEX Hackathon presentation (clearly identified as projections)
-   - State-wise geographic craft map across India
-10. **Auth Portal (`/login`)**:
-    - Quick 1-click demo access for Hackathon judges (Lakshmi Devi as Artisan or Vikram Sen as Supporter).
-
----
-
-## 💻 Running the Project Locally
-
-### 1. Start the React Frontend:
-```bash
+```powershell
+npm ci
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 2. (Optional) Run the Express Backend Server:
-```bash
-npm run server
-```
-Runs the Express API on [http://localhost:5000](http://localhost:5000).
+Open the local URL printed by Vite.
 
-### 3. Build for Production:
-```bash
-npm run build
-```
-Creates an optimized production build in `dist/`.
+## Supabase setup
 
----
+Run [`src/data/schema.sql`](src/data/schema.sql) in the Supabase SQL Editor, then enter the project URL and publishable/anon key in Database Settings. Never use a service-role or secret key in the browser.
 
-© 2026 KarigarConnect. Built for NOVEX Hackathon 2026. Empowering Artisans Through Opportunity.
+## Technology
+
+- React and Vite
+- Tailwind CSS
+- Supabase JavaScript client
+- Lucide React icons
+- Canvas Confetti
