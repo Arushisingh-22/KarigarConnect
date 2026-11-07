@@ -125,7 +125,52 @@ app.post('/api/contribute', async (req, res) => {
     res.status(500).json({ error: 'Failed to save to database' });
   }
 });
+// Register New User Endpoint
+app.post('/api/auth/register', async (req, res) => {
+  const { fullName, email, password, role } = req.body;
 
+  if (!fullName || !email || !password) {
+    return res.status(400).json({ error: 'Full name, email, and password are required' });
+  }
+
+  try {
+    // Insert into Supabase users table
+    const result = await pool.query(`
+      INSERT INTO users (full_name, email, password_hash, role)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, full_name, email, role, created_at
+    `, [fullName, email, password, role || 'SUPPORTER']);
+
+    const newUser = result.rows[0];
+
+    // Agar Artisan hai toh unka artisan profile record bhi create karo
+    if (role === 'ARTISAN') {
+      await pool.query(`
+        INSERT INTO artisan_profiles (user_id, craft_category, village, district, state, experience_years, bio_story)
+        VALUES ($1, 'Handicrafts', 'Village', 'District', 'State', 5, 'Traditional artisan preserving Indian heritage crafts.')
+      `, [newUser.id]);
+    }
+
+    console.log(` New user registered in Supabase: ${fullName} (${email}) as ${role}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully in database!',
+      user: {
+        id: newUser.id,
+        name: newUser.full_name,
+        email: newUser.email,
+        role: newUser.role
+      }
+    });
+  } catch (err) {
+    console.error('Registration error:', err.message);
+    if (err.code === '23505') {
+      return res.status(400).json({ error: 'This email is already registered' });
+    }
+    res.status(500).json({ error: 'Failed to create user account' });
+  }
+});
 // Auth endpoint
 app.post('/api/auth/login', (req, res) => {
   const { email, role } = req.body;
