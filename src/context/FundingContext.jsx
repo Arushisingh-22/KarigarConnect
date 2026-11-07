@@ -123,7 +123,7 @@ export const FundingProvider = ({ children }) => {
   }, [userContributions]);
 
   // Contribute to Artisan
-  const contribute = async (artisanId, amount, paymentMethod = 'UPI', supporterName = 'Vikram Sen') => {
+const contribute = async (artisanId, amount, paymentMethod = 'UPI', supporterName = 'Vikram Sen') => {
     const numAmount = Number(amount);
     if (!numAmount || numAmount <= 0) return null;
 

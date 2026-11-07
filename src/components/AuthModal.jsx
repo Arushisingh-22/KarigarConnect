@@ -8,14 +8,33 @@ export const AuthModal = () => {
   
   const [tab, setTab] = useState(authModalTab || 'login');
   const [role, setRole] = useState('SUPPORTER');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   if (!isAuthModalOpen) return null;
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    loginWithCredentials(email || 'demo@karigarconnect.in', password, role);
+    if (tab === 'register') {
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName, email, password, role })
+        });
+        const data = await res.json();
+        if (data.success) {
+          loginWithCredentials(email, password, role);
+        } else {
+          alert(data.error || 'Registration failed');
+        }
+      } catch (err) {
+        console.error(err);
+        loginWithCredentials(email, password, role);
+      }
+    } else {
+      loginWithCredentials(email, password, role);
+    }
   };
 
   return (
@@ -134,7 +153,20 @@ export const AuthModal = () => {
                 </button>
               </div>
             </div>
-
+{/* Full Name for Registration */}
+{tab === 'register' && (
+  <div>
+    <label className="text-xs text-[#263B36]/70 block mb-1">Full Name</label>
+    <input
+      type="text"
+      required
+      placeholder="e.g. Shravani Sharma"
+      value={fullName}
+      onChange={(e) => setFullName(e.target.value)}
+      className="w-full px-3 py-2 text-xs rounded-xl bg-[#FAF6F0] border border-[#D5B46A]/40 focus:outline-hidden focus:border-[#C7794A] text-[#173B35]"
+    />
+  </div>
+)}
             {/* Email */}
             <div>
               <label className="text-xs text-[#263B36]/70 block mb-1">Email Address</label>
