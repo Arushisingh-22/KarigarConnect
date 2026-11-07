@@ -100,7 +100,7 @@ export const FundingProvider = ({ children }) => {
   };
 
   // Contribute to Artisan
-   const contribute = async (artisanId, amount, paymentMethod = 'UPI', supporterName = 'Vikram Sen') => {
+  const contribute = (artisanId, amount, paymentMethod = 'UPI', supporterName = 'Vikram Sen') => {
     const numAmount = Number(amount);
     if (!numAmount || numAmount <= 0) return null;
 
