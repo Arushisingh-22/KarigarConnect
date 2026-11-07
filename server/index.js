@@ -93,27 +93,51 @@ app.get('/api/artisans', async (req, res) => {
 
 // Contribute endpoint
 app.post('/api/contribute', async (req, res) => {
-  const { artisanId, amount, supporterName, paymentMethod } = req.body;
+  const { artisanId, amount, supporterName, paymentMethod, txHash: clientTxHash, blockNumber: clientBlockNumber } = req.body;
 
   try {
-    const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-    const blockNumber = 19842100 + Math.floor(Math.random() * 50);
+    const txHash = clientTxHash || ('0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join(''));
+    const blockNumber = clientBlockNumber || (19842100 + Math.floor(Math.random() * 50));
 
-    // Save contribution into PostgreSQL table
+    // Lookup matching supporter user ID if available
+    let supporterId = 'c1111111-1111-1111-1111-111111111111';
+    if (supporterName) {
+      const uRes = await pool.query(
+        'SELECT id FROM users WHERE LOWER(full_name) LIKE LOWER($1) LIMIT 1',
+        ['%' + supporterName.trim() + '%']
+      );
+      if (uRes.rows.length > 0) {
+        supporterId = uRes.rows[0].id;
+      }
+    }
+
+    // Lookup loan ID for the targeted artisan
+    let targetLoanId = 'e1111111-1111-1111-1111-111111111111';
+    if (artisanId) {
+      const loanRes = await pool.query(
+        'SELECT id FROM loan_requests WHERE artisan_id = $1 LIMIT 1',
+        [artisanId]
+      );
+      if (loanRes.rows.length > 0) {
+        targetLoanId = loanRes.rows[0].id;
+      }
+    }
+
+    // Save contribution into PostgreSQL table with matching client txHash
     const result = await pool.query(`
       INSERT INTO contributions (loan_id, supporter_id, amount, payment_method, blockchain_tx_hash, block_number)
-      VALUES (
-        'e1111111-1111-1111-1111-111111111111', 
-        'c1111111-1111-1111-1111-111111111111', 
-        $1, 
-        $2, 
-        $3, 
-        $4
-      )
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
-    `, [Number(amount), paymentMethod || 'UPI', txHash, blockNumber]);
+    `, [targetLoanId, supporterId, Number(amount), paymentMethod || 'UPI', txHash, blockNumber]);
 
-    console.log(` Saved ₹${amount} contribution to PostgreSQL from ${supporterName || 'Supporter'}!`);
+    // Also update loan_requests raised amount
+    await pool.query(`
+      UPDATE loan_requests 
+      SET amount_raised = LEAST(goal_amount, amount_raised + $1) 
+      WHERE id = $2
+    `, [Number(amount), targetLoanId]).catch(err => console.warn('Could not update loan raised amount:', err.message));
+
+    console.log(` Saved ₹${amount} contribution to PostgreSQL from ${supporterName || 'Supporter'}! TxHash: ${txHash}`);
 
     res.json({
       success: true,
@@ -123,6 +147,120 @@ app.post('/api/contribute', async (req, res) => {
   } catch (err) {
     console.error('Database error on contribute:', err.message);
     res.status(500).json({ error: 'Failed to save to database' });
+  }
+});
+
+// LOAN MANAGEMENT 
+// 1. Artisan applies for a new micro-loan
+app.post('/api/loans', async (req, res) => {
+  const { artisanId, title, craftPurpose, goalAmount, tenureMonths } = req.body;
+
+  if (!artisanId || !title || !goalAmount) {
+    return res.status(400).json({ error: 'artisanId, title, and goalAmount are required' });
+  }
+
+  try {
+    const result = await pool.query(`
+      INSERT INTO loan_requests (
+        artisan_id,
+        title,
+        craft_purpose,
+        goal_amount,
+        amount_raised,
+        amount_repaid,
+        tenure_months,
+        interest_rate_percent,
+        status
+      )
+      VALUES ($1, $2, $3, $4, 0.00, 0.00, $5, 0.00, 'ACTIVE')
+      RETURNING *
+    `, [
+      artisanId,
+      title,
+      craftPurpose || 'Micro-loan for raw materials and workshop tools',
+      Number(goalAmount),
+      Number(tenureMonths) || 6
+    ]);
+
+    console.log(` New Loan Created in Supabase: "${title}" for ₹${goalAmount}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Loan application submitted and activated in database!',
+      loan: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error creating loan:', err.message);
+    res.status(500).json({ error: 'Failed to create loan application' });
+  }
+});
+
+// 2. Fetch all loans with artisan details
+app.get('/api/loans', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        lr.id AS "loanId",
+        lr.title,
+        lr.craft_purpose AS "craftPurpose",
+        lr.goal_amount AS "goalAmount",
+        lr.amount_raised AS "amountRaised",
+        lr.amount_repaid AS "amountRepaid",
+        lr.tenure_months AS "tenureMonths",
+        lr.interest_rate_percent AS "interestRate",
+        lr.status,
+        lr.created_at AS "createdAt",
+        u.full_name AS "artisanName",
+        ap.craft_category AS "category",
+        ap.village || ', ' || ap.state AS "location"
+      FROM loan_requests lr
+      JOIN artisan_profiles ap ON ap.id = lr.artisan_id
+      JOIN users u ON u.id = ap.user_id
+      ORDER BY lr.created_at DESC
+    `);
+
+    res.json({ success: true, count: result.rows.length, loans: result.rows });
+  } catch (err) {
+    console.error('Error fetching loans:', err.message);
+    res.status(500).json({ error: 'Failed to fetch loans' });
+  }
+});
+
+// 3. Record a loan repayment installment
+app.post('/api/repayments', async (req, res) => {
+  const { loanId, installmentNumber, amount } = req.body;
+
+  if (!loanId || !amount) {
+    return res.status(400).json({ error: 'loanId and amount are required' });
+  }
+
+  try {
+    const txHash = clientTxHash || ('0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join(''));
+
+    // Insert into repayments table
+    const result = await pool.query(`
+      INSERT INTO repayments (loan_id, installment_number, amount, due_date, paid_date, blockchain_tx_hash, status)
+      VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_TIMESTAMP, $4, 'PAID')
+      RETURNING *
+    `, [loanId, Number(installmentNumber) || 1, Number(amount), txHash]);
+
+    // Update loan_requests amount_repaid
+    await pool.query(`
+      UPDATE loan_requests
+      SET amount_repaid = amount_repaid + $1
+      WHERE id = $2
+    `, [Number(amount), loanId]);
+
+    console.log(` Repayment of ₹${amount} recorded in Supabase for Loan #${loanId}!`);
+
+    res.json({
+      success: true,
+      message: 'Repayment successfully recorded and balance updated!',
+      repayment: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error recording repayment:', err.message);
+    res.status(500).json({ error: 'Failed to record repayment' });
   }
 });
 // Register New User Endpoint

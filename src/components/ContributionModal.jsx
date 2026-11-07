@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -24,7 +24,14 @@ export const ContributionModal = ({ artisan, isOpen, onClose }) => {
   const [amount, setAmount] = useState(2500);
   const [customAmount, setCustomAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('UPI'); // 'UPI' | 'ETH' | 'CARD'
-  const [supporterName, setSupporterName] = useState(user?.name || 'Vikram Sen');
+  const [supporterName, setSupporterName] = useState(user?.name || '');
+
+  // Keep supporterName synced with logged-in user
+  useEffect(() => {
+    if (user?.name) {
+      setSupporterName(user.name);
+    }
+  }, [user?.name]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [receipt, setReceipt] = useState(null);
 
@@ -63,7 +70,8 @@ export const ContributionModal = ({ artisan, isOpen, onClose }) => {
 
     // Simulate smart contract confirmation delay
     setTimeout(() => {
-      const result = contribute(artisan.id, amount, paymentMethod, supporterName);
+      const activeName = (supporterName && supporterName.trim()) || user?.name || 'Supporter';
+      const result = contribute(artisan.id, amount, paymentMethod, activeName);
       setIsProcessing(false);
       setReceipt(result);
     }, 1200);

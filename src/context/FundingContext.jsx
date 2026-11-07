@@ -100,15 +100,22 @@ export const FundingProvider = ({ children }) => {
   };
 
   // Contribute to Artisan
-  const contribute = (artisanId, amount, paymentMethod = 'UPI', supporterName = 'Vikram Sen') => {
+  const contribute = (artisanId, amount, paymentMethod = 'UPI', supporterName = 'Supporter') => {
     const numAmount = Number(amount);
     if (!numAmount || numAmount <= 0) return null;
+
+    const txHash = generateTxHash();
+    const blockNumber = 19842100 + Math.floor(Math.random() * 50);
+    const ethEquivalent = (numAmount / 300000).toFixed(4) + ' ETH';
+
+
+
 
     // Send to our PostgreSQL backend!
     fetch('http://localhost:5000/api/contribute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ artisanId, amount: numAmount, supporterName, paymentMethod })
+      body: JSON.stringify({ artisanId, amount: numAmount, supporterName, paymentMethod, txHash, blockNumber })
     }).catch(err => console.error('Failed to save to database:', err));
 
     let targetArtisan = null;
@@ -129,10 +136,10 @@ export const FundingProvider = ({ children }) => {
       })
     );
 
-    // 2. Generate Blockchain Record
-    const txHash = generateTxHash();
-    const blockNumber = 19842100 + Math.floor(Math.random() * 50);
-    const ethEquivalent = (numAmount / 300000).toFixed(4) + ' ETH';
+    // 2. Format Blockchain Transaction Entry
+
+
+
 
     const newTx = {
       txHash,
@@ -206,7 +213,7 @@ export const FundingProvider = ({ children }) => {
       })
     );
 
-    const txHash = generateTxHash();
+
     const newTx = {
       txHash,
       blockNumber: 19842100 + Math.floor(Math.random() * 50),

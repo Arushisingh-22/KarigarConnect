@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Coins, 
@@ -26,7 +26,14 @@ export const Funding = () => {
   const [amount, setAmount] = useState(2500);
   const [customAmount, setCustomAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('UPI');
-  const [backerName, setBackerName] = useState(user?.name || 'Vikram Sen');
+  const [backerName, setBackerName] = useState(user?.name || '');
+
+  // Keep backerName synchronized with current logged-in user
+  useEffect(() => {
+    if (user?.name) {
+      setBackerName(user.name);
+    }
+  }, [user?.name]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [receipt, setReceipt] = useState(null);
 
@@ -52,7 +59,8 @@ export const Funding = () => {
 
     setIsProcessing(true);
     setTimeout(() => {
-      const res = contribute(selectedArtisan.id, amount, paymentMethod, backerName);
+      const activeBacker = (backerName && backerName.trim()) || user?.name || 'Supporter';
+      const res = contribute(selectedArtisan.id, amount, paymentMethod, activeBacker);
       setIsProcessing(false);
       setReceipt(res);
     }, 1300);
