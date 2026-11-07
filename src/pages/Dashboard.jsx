@@ -32,15 +32,23 @@ export const Dashboard = () => {
   // Primary demo artisan (Lakshmi Devi)
   const artisanProfile = artisans[0];
 
-  const handleDemoRepayment = () => {
-    const res = makeRepayment(artisanProfile.id, 6667);
-    setRepaymentMessage(`Repayment of ₹6,667 submitted and mined on Block #${res.txHash.slice(2, 8)}!`);
-    setTimeout(() => setRepaymentMessage(null), 5000);
+  const handleDemoRepayment = async () => {
+    const res = await makeRepayment(artisanProfile.id, 6667);
+    if (res) {
+      setRepaymentMessage(`Repayment of ₹6,667 successfully submitted and recorded on escrow ledger (Demo Mode • Tx: ${res.txHash.slice(0, 10)}...)!`);
+      setTimeout(() => setRepaymentMessage(null), 5000);
+    }
   };
 
   const handleDownloadCertificate = (artisanName, craft) => {
     alert(`📜 Certificate of Micro-Patronage downloaded!\n\nPatron: ${user?.name || 'Supporter'}\nBeneficiary: ${artisanName}\nCraft: ${craft}\nStatus: Certified on KarigarSmartEscrow.`);
   };
+
+  // Dynamically derived supporter metrics from genuine contributions
+  const totalContributed = userContributions.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  const uniqueArtisansBacked = new Set(userContributions.map(c => c.artisanId)).size;
+  const totalRepaidToWallet = userContributions.reduce((sum, c) => sum + (Number(c.repaidSoFar) || 0), 0);
+  const estimatedLivesImpacted = uniqueArtisansBacked * 4;
 
   return (
     <div className="space-y-12 py-10 pb-24">
@@ -223,25 +231,37 @@ export const Dashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
                 <span className="text-xs text-[#263B36]/60 font-semibold uppercase">Total Contributed</span>
-                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">₹18,500</div>
-                <p className="text-[11px] text-[#C7794A] font-semibold mt-1">Across 3 Craft Clusters</p>
+                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">
+                  ₹{totalContributed.toLocaleString('en-IN')}
+                </div>
+                <p className="text-[11px] text-[#C7794A] font-semibold mt-1">
+                  Across {uniqueArtisansBacked} Craft {uniqueArtisansBacked === 1 ? 'Cluster' : 'Clusters'}
+                </p>
               </div>
 
               <div className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
                 <span className="text-xs text-[#263B36]/60 font-semibold uppercase">Artisans Backed</span>
-                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">3 Master Artisans</div>
-                <p className="text-[11px] text-emerald-700 font-semibold mt-1">100% On-Track Repayment</p>
+                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">
+                  {uniqueArtisansBacked} {uniqueArtisansBacked === 1 ? 'Master Artisan' : 'Master Artisans'}
+                </div>
+                <p className="text-[11px] text-emerald-700 font-semibold mt-1">Zero-Interest Direct Escrow</p>
               </div>
 
               <div className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
                 <span className="text-xs text-[#263B36]/60 font-semibold uppercase">Repaid to Wallet</span>
-                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">₹11,417</div>
-                <p className="text-[11px] text-[#263B36]/60 mt-1">61.7% Principal Returned</p>
+                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">
+                  ₹{totalRepaidToWallet.toLocaleString('en-IN')}
+                </div>
+                <p className="text-[11px] text-[#263B36]/60 mt-1">
+                  {totalContributed > 0 ? `${Math.round((totalRepaidToWallet / totalContributed) * 100)}% Principal Returned` : 'Awaiting first contribution'}
+                </p>
               </div>
 
               <div className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
                 <span className="text-xs text-[#263B36]/60 font-semibold uppercase">Direct Social Impact</span>
-                <div className="font-serif text-3xl font-bold text-emerald-700 mt-1">14 Lives</div>
+                <div className="font-serif text-3xl font-bold text-emerald-700 mt-1">
+                  {estimatedLivesImpacted} Lives
+                </div>
                 <p className="text-[11px] text-[#263B36]/70 mt-1">Apprentices & Family Members</p>
               </div>
             </div>
@@ -269,43 +289,66 @@ export const Dashboard = () => {
                 </a>
               </div>
 
-              {/* List of Contributions */}
+              {/* List of Contributions / Empty State */}
               <div className="divide-y divide-[#FAF6F0] border border-[#E7DEC9] rounded-2xl overflow-hidden">
-                {userContributions.map((c) => (
-                  <div key={c.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs hover:bg-[#FAF6F0]/50 transition-colors">
-                    <div className="space-y-1">
-                      <div className="font-serif text-base font-bold text-[#173B35]">
-                        {c.artisanName}
+                {userContributions.length > 0 ? (
+                  userContributions.map((c) => (
+                    <div key={c.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs hover:bg-[#FAF6F0]/50 transition-colors">
+                      <div className="space-y-1">
+                        <div className="font-serif text-base font-bold text-[#173B35]">
+                          {c.artisanName}
+                        </div>
+                        <div className="text-[#C7794A] font-semibold">
+                          {c.craft}
+                        </div>
+                        <div className="text-[11px] text-[#263B36]/60 font-mono">
+                          Tx Hash: {c.txHash} • Backed on {c.date}
+                        </div>
                       </div>
-                      <div className="text-[#C7794A] font-semibold">
-                        {c.craft}
-                      </div>
-                      <div className="text-[11px] text-[#263B36]/60 font-mono">
-                        Tx Hash: {c.txHash} • Backed on {c.date}
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="font-serif font-bold text-base text-[#173B35]">
+                            ₹{c.amount.toLocaleString('en-IN')}
+                          </div>
+                          <div className="text-[10px] text-emerald-700 font-semibold">
+                            ₹{c.repaidSoFar.toLocaleString('en-IN')} repaid
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleDownloadCertificate(c.artisanName, c.craft)}
+                          className="px-3.5 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#173B35] hover:text-white text-[#173B35] border border-[#D5B46A]/40 transition-colors flex items-center gap-1.5 font-bold text-[11px] cursor-pointer shadow-2xs active:scale-95"
+                          title="Download Cryptographic Certificate"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Certificate</span>
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-serif font-bold text-base text-[#173B35]">
-                          ₹{c.amount.toLocaleString('en-IN')}
-                        </div>
-                        <div className="text-[10px] text-emerald-700 font-semibold">
-                          ₹{c.repaidSoFar.toLocaleString('en-IN')} repaid
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleDownloadCertificate(c.artisanName, c.craft)}
-                        className="px-3.5 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#173B35] hover:text-white text-[#173B35] border border-[#D5B46A]/40 transition-colors flex items-center gap-1.5 font-bold text-[11px] cursor-pointer shadow-2xs active:scale-95"
-                        title="Download Cryptographic Certificate"
+                  ))
+                ) : (
+                  <div className="p-10 text-center space-y-3 bg-[#FAF6F0]/20">
+                    <div className="w-10 h-10 rounded-xl bg-[#FAF6F0] border border-[#D5B46A]/40 text-[#C7794A] flex items-center justify-center mx-auto">
+                      <Coins className="w-5 h-5" />
+                    </div>
+                    <p className="font-serif font-bold text-base text-[#173B35]">
+                      No micro-loans funded yet.
+                    </p>
+                    <p className="text-xs text-[#263B36]/70 max-w-sm mx-auto">
+                      Explore verified rural artisans to provide zero-interest working capital and track your impact portfolio here.
+                    </p>
+                    <div className="pt-1">
+                      <a
+                        href="/explore"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#C7794A] hover:bg-[#B56738] text-white text-xs font-bold transition-all shadow-xs"
                       >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Certificate</span>
-                      </button>
+                        <span>Explore Artisans</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </a>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
 
             </div>

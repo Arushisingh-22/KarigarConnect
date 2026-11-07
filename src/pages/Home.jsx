@@ -296,10 +296,10 @@ export const Home = () => {
                     </div>
                   </div>
                   <div className="mt-2 text-[10px] text-[#FAF6F0]/60 font-mono flex items-center justify-between">
-                    <span>Block: #19842103</span>
+                    <span>{transactions.length > 0 ? `Block #${transactions[0].blockNumber}` : 'Autonomous Escrow (Demo)'}</span>
                     <span className="text-emerald-400 font-bold flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      Confirmed
+                      Verified
                     </span>
                   </div>
                 </motion.div>
@@ -515,30 +515,36 @@ export const Home = () => {
                 Live Smart Contract Event Stream
               </h4>
               <div className="divide-y divide-[#FAF6F0] border border-[#E7DEC9] rounded-2xl overflow-hidden bg-[#FAF6F0]/30">
-                {transactions.slice(0, 3).map((tx, idx) => (
-                  <div key={idx} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-[#FAF6F0]/60 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider ${
-                        tx.type === 'CONTRIBUTION' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {tx.type}
-                      </span>
-                      <div>
-                        <div className="font-mono text-[#173B35] font-semibold truncate max-w-xs sm:max-w-md">
-                          {tx.txHash}
-                        </div>
-                        <div className="text-[#263B36]/60 text-[11px]">
-                          From {tx.from} ➔ To {tx.to}
+                {transactions.length > 0 ? (
+                  transactions.slice(0, 3).map((tx, idx) => (
+                    <div key={idx} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-[#FAF6F0]/60 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider ${
+                          tx.type === 'CONTRIBUTION' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {tx.type}
+                        </span>
+                        <div>
+                          <div className="font-mono text-[#173B35] font-semibold truncate max-w-xs sm:max-w-md">
+                            {tx.txHash}
+                          </div>
+                          <div className="text-[#263B36]/60 text-[11px]">
+                            From {tx.from} ➔ To {tx.to}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="sm:text-right shrink-0">
-                      <div className="font-bold text-[#173B35] text-sm">{tx.amount}</div>
-                      <div className="text-[10px] text-[#263B36]/60">{tx.timestamp} • Block #{tx.blockNumber}</div>
+                      <div className="sm:text-right shrink-0">
+                        <div className="font-bold text-[#173B35] text-sm">{tx.amount}</div>
+                        <div className="text-[10px] text-[#263B36]/60">{tx.timestamp} • Block #{tx.blockNumber}</div>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-xs text-[#263B36]/70">
+                    No blockchain transactions yet. Transactions will appear here once funding or repayments are recorded.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>

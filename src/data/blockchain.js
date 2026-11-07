@@ -117,79 +117,13 @@ contract KarigarLoanEscrow {
     }
 }`;
 
-export const INITIAL_TRANSACTIONS = [
-  {
-    txHash: '0x8f2a6b7d19c34e8f1b5d6a29e47f08b1a329d89c452e40749ba94df34de1b857',
-    blockNumber: 19842103,
-    timestamp: '2 mins ago',
-    type: 'CONTRIBUTION',
-    from: '0x3A21...79b4 (Vikram S.)',
-    to: '0x71C...49bE (Lakshmi Devi)',
-    amount: '₹2,500',
-    cryptoEquivalent: '0.0084 ETH',
-    craft: 'Chanderi Silk & Zari Weaving',
-    status: 'Confirmed (12 Block Confirmations)',
-    gasUsed: '21,432 Gwei'
-  },
-  {
-    txHash: '0x4d12c8a901e47f2b6e5d8a30f1c9b2e8a719d34e8f1b5d6a29e47f08b1a329d8',
-    blockNumber: 19842089,
-    timestamp: '18 mins ago',
-    type: 'REPAYMENT',
-    from: '0x88A...12eC (Rameshwar Prajapati)',
-    to: 'KarigarEscrow Contract',
-    amount: '₹6,250',
-    cryptoEquivalent: '0.0210 ETH',
-    craft: 'Terracotta Clay Sculptures',
-    status: 'Confirmed (45 Block Confirmations)',
-    gasUsed: '34,120 Gwei'
-  },
-  {
-    txHash: '0x992b1f84e3a1d9c7204859a1e0b5c4f284e91048b2a38148f918e827103a8f11',
-    blockNumber: 19842065,
-    timestamp: '42 mins ago',
-    type: 'CONTRIBUTION',
-    from: '0x5C89...99a1 (Ananya R.)',
-    to: '0x39F...91dD (Fatima Begum)',
-    amount: '₹5,000',
-    cryptoEquivalent: '0.0168 ETH',
-    craft: 'Chikankari & Zardozi Shadow Work',
-    status: 'Confirmed (98 Block Confirmations)',
-    gasUsed: '21,432 Gwei'
-  },
-  {
-    txHash: '0x21c890ab43fe91a5829148d88c42b09a71239e083942ef3a992819cd8271a0b3',
-    blockNumber: 19842021,
-    timestamp: '1 hour ago',
-    type: 'DISBURSEMENT',
-    from: 'KarigarEscrow Contract',
-    to: '0x94B...55aA (Kishanlal Suthar)',
-    amount: '₹30,000',
-    cryptoEquivalent: '0.1008 ETH',
-    craft: 'Channapatna Wooden Toys',
-    status: 'Confirmed (162 Block Confirmations)',
-    gasUsed: '48,920 Gwei'
-  },
-  {
-    txHash: '0x7e3a201b88df34928194a20b83e9182390a7821c9b2e8a719d34e8f1b5d6a29e',
-    blockNumber: 19841972,
-    timestamp: '2.5 hours ago',
-    type: 'REPAYMENT',
-    from: '0x45E...88fF (Subhash Chitrakar)',
-    to: 'KarigarEscrow Contract',
-    amount: '₹6,667',
-    cryptoEquivalent: '0.0224 ETH',
-    craft: 'Traditional Pattachitra',
-    status: 'Confirmed (280 Block Confirmations)',
-    gasUsed: '34,120 Gwei'
-  }
-];
+// Genuine verified transactions are populated from actual user funding/repayment actions.
+// No hardcoded or fabricated transactions are present.
+export const INITIAL_TRANSACTIONS = [];
 
 export const BLOCKCHAIN_METRICS = {
-  network: 'Ethereum Sepolia Testnet & Polygon PoS Bridge',
+  network: 'Ethereum Sepolia Testnet (Simulation Mode)',
   contractAddress: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-  blockTime: '2.1s average',
-  totalTxCount: 14208,
-  consensusMechanism: 'Proof of Stake (Eco-Friendly <0.001 kWh/tx)',
-  auditStatus: 'Audited & Verified (Zero Reentrancy & Escrow Invariant Checks Passed)'
+  environment: 'Local Escrow Ledger (Demo)',
+  auditStatus: 'Contract Logic Verified (Zero-Interest Escrow Invariant Checks)'
 };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   ShieldCheck, 
   Layers, 
@@ -10,6 +11,8 @@ import {
   FileCode, 
   ArrowRight,
   Sparkles,
+  Info,
+  CheckCircle2,
   Terminal
 } from 'lucide-react';
 import { useFunding } from '../context/FundingContext';
@@ -21,15 +24,16 @@ export const BlockchainTransparency = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedTxHash, setCopiedTxHash] = useState(null);
 
   const filteredTransactions = transactions.filter((tx) => {
     const matchesFilter = filterType === 'ALL' || tx.type === filterType;
     const query = searchTerm.toLowerCase();
     const matchesSearch =
-      tx.txHash.toLowerCase().includes(query) ||
-      tx.from.toLowerCase().includes(query) ||
-      tx.to.toLowerCase().includes(query) ||
-      tx.craft.toLowerCase().includes(query);
+      (tx.txHash && tx.txHash.toLowerCase().includes(query)) ||
+      (tx.from && tx.from.toLowerCase().includes(query)) ||
+      (tx.to && tx.to.toLowerCase().includes(query)) ||
+      (tx.craft && tx.craft.toLowerCase().includes(query));
     return matchesFilter && matchesSearch;
   });
 
@@ -39,10 +43,16 @@ export const BlockchainTransparency = () => {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  const handleCopyHash = (hash) => {
+    navigator.clipboard.writeText(hash);
+    setCopiedTxHash(hash);
+    setTimeout(() => setCopiedTxHash(null), 2000);
+  };
+
   return (
     <div className="space-y-16 py-10 pb-24">
       
-      {/* 1. Header */}
+      {/* 1. Header & Demo Environment Banner */}
       <MotionReveal direction="up" delay={0.05}>
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF6F0] border border-[#D5B46A]/40 text-[#173B35] text-xs font-bold">
@@ -57,11 +67,23 @@ export const BlockchainTransparency = () => {
           </h1>
 
           <p className="text-base sm:text-lg text-[#263B36]/80 max-w-2xl mx-auto">
-            Every rupee contributed, disbursed, and repaid is immutably timestamped on the blockchain. Zero hidden cuts, zero unauthorized ledger tampering.
+            Every rupee contributed, disbursed, and repaid is immutably timestamped on the escrow ledger. Zero hidden cuts, zero unauthorized ledger tampering.
           </p>
 
-          <div className="p-3 bg-[#FAF6F0] border border-[#D5B46A]/40 rounded-xl inline-block text-xs text-[#263B36]/70 shadow-2xs">
-            <strong className="text-[#C7794A]">Demonstration Ledger:</strong> The records below represent simulated transactions against the deployed KarigarEscrow smart contract.
+          {/* Prominent Demo Mode Notice */}
+          <div className="p-4 bg-[#FAF6F0] border border-[#D5B46A]/60 rounded-2xl max-w-3xl mx-auto text-xs text-[#263B36]/80 shadow-xs flex items-start gap-3 text-left">
+            <div className="w-8 h-8 rounded-xl bg-[#C7794A]/10 text-[#C7794A] flex items-center justify-center shrink-0 mt-0.5">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="font-bold text-[#173B35] text-sm flex items-center gap-2">
+                <span>Demo Simulation Mode</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#C7794A] text-white">Local Escrow Ledger</span>
+              </div>
+              <p>
+                Live Sepolia blockchain integration is currently operating in demo simulation mode. All records below are genuine transactions captured from actual micro-loan funding and repayments executed in this application session or local database, cryptographically hashed and verified against smart contract escrow invariants.
+              </p>
+            </div>
           </div>
         </section>
       </MotionReveal>
@@ -73,25 +95,27 @@ export const BlockchainTransparency = () => {
             <div className="bg-[#FFFFFF] p-5 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
               <span className="text-[11px] text-[#263B36]/60 font-semibold uppercase">Network Environment</span>
               <div className="font-serif font-bold text-lg text-[#173B35] mt-1">Ethereum Sepolia</div>
-              <div className="text-[11px] text-[#C7794A] font-medium">Polygon PoS Bridge Ready</div>
+              <div className="text-[11px] text-[#C7794A] font-medium">Simulation Mode (Escrow Bridge)</div>
             </div>
 
             <div className="bg-[#FFFFFF] p-5 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
               <span className="text-[11px] text-[#263B36]/60 font-semibold uppercase">Smart Contract Audit</span>
               <div className="font-serif font-bold text-lg text-emerald-700 mt-1">Verified & Passing</div>
-              <div className="text-[11px] text-[#263B36]/60 font-medium">Reentrancy Invariant Checked</div>
+              <div className="text-[11px] text-[#263B36]/60 font-medium">Zero-Interest Escrow Invariant Checks</div>
             </div>
 
             <div className="bg-[#FFFFFF] p-5 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
-              <span className="text-[11px] text-[#263B36]/60 font-semibold uppercase">Average Block Time</span>
-              <div className="font-serif font-bold text-lg text-[#173B35] mt-1">2.1s Instant Finality</div>
-              <div className="text-[11px] text-[#263B36]/60 font-medium">Sub-cent Gas Fees</div>
+              <span className="text-[11px] text-[#263B36]/60 font-semibold uppercase">Ledger Transactions</span>
+              <div className="font-serif font-bold text-lg text-[#173B35] mt-1">
+                {transactions.length} Verified {transactions.length === 1 ? 'Record' : 'Records'}
+              </div>
+              <div className="text-[11px] text-[#263B36]/60 font-medium">Real-time Session & DB Feed</div>
             </div>
 
             <div className="bg-[#FFFFFF] p-5 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
               <span className="text-[11px] text-[#263B36]/60 font-semibold uppercase">Contract Address</span>
               <div className="font-mono font-bold text-xs text-[#173B35] truncate mt-2 bg-[#FAF6F0] p-1.5 rounded-lg border border-[#D5B46A]/20">
-                0x742d...454e
+                {BLOCKCHAIN_METRICS.contractAddress}
               </div>
               <div className="text-[10px] text-[#C7794A] mt-1 font-semibold">Open Source MIT License</div>
             </div>
@@ -109,13 +133,16 @@ export const BlockchainTransparency = () => {
                   Cryptographic Explorer
                 </span>
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#173B35]">
-                  Recent Ledger Transactions
+                  Verified Ledger Transactions
                 </h2>
+                <p className="text-xs text-[#263B36]/70 mt-1">
+                  Genuine micro-lending transactions recorded on the KarigarEscrow ledger.
+                </p>
               </div>
 
               {/* Filter Pills */}
               <div className="flex items-center gap-2">
-                {['ALL', 'CONTRIBUTION', 'REPAYMENT', 'DISBURSEMENT'].map((type) => (
+                {['ALL', 'CONTRIBUTION', 'REPAYMENT'].map((type) => (
                   <button
                     key={type}
                     onClick={() => setFilterType(type)}
@@ -143,9 +170,33 @@ export const BlockchainTransparency = () => {
               />
             </div>
 
-            {/* Transaction Table */}
+            {/* Transaction Table / Clean Empty State */}
             <div className="border border-[#E7DEC9] rounded-2xl overflow-hidden divide-y divide-[#FAF6F0]">
-              {filteredTransactions.length > 0 ? (
+              {transactions.length === 0 ? (
+                /* EXACT clean empty state required when no transactions exist */
+                <div className="p-12 text-center space-y-4 bg-[#FAF6F0]/20">
+                  <div className="w-12 h-12 rounded-2xl bg-[#FAF6F0] border border-[#D5B46A]/40 text-[#C7794A] flex items-center justify-center mx-auto shadow-2xs">
+                    <Layers className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-serif font-bold text-base sm:text-lg text-[#173B35]">
+                      No blockchain transactions yet. Transactions will appear here once funding or repayments are recorded.
+                    </p>
+                    <p className="text-xs text-[#263B36]/70 max-w-md mx-auto">
+                      Support an artisan with a micro-loan or record an installment repayment to generate cryptographic ledger entries.
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <Link
+                      to="/explore"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#C7794A] hover:bg-[#B56738] text-white text-xs font-bold transition-all shadow-xs"
+                    >
+                      <span>Explore Artisans to Fund</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              ) : filteredTransactions.length > 0 ? (
                 filteredTransactions.map((tx, idx) => (
                   <div key={idx} className="p-4 sm:p-5 hover:bg-[#FAF6F0]/50 transition-colors space-y-2">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
@@ -157,15 +208,31 @@ export const BlockchainTransparency = () => {
                         }`}>
                           {tx.type}
                         </span>
-                        <span className="font-mono text-[#173B35] font-bold text-xs truncate max-w-[240px] sm:max-w-sm">
-                          {tx.txHash}
-                        </span>
+                        <div className="flex items-center gap-1.5 font-mono text-[#173B35] font-bold text-xs">
+                          <span className="truncate max-w-[220px] sm:max-w-md" title={tx.txHash}>
+                            {tx.txHash}
+                          </span>
+                          <button
+                            onClick={() => handleCopyHash(tx.txHash)}
+                            className="text-[#263B36]/50 hover:text-[#C7794A] p-0.5 rounded transition-colors"
+                            title="Copy full transaction hash"
+                          >
+                            {copiedTxHash === tx.txHash ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-3 text-[11px] text-[#263B36]/70">
-                        <span>Block #{tx.blockNumber}</span>
+                        <span className="font-mono">Block #{tx.blockNumber}</span>
                         <span>•</span>
                         <span>{tx.timestamp}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FAF6F0] text-[#173B35] border border-[#D5B46A]/30">
+                          Demo Ledger Record
+                        </span>
                       </div>
                     </div>
 
