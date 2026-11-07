@@ -23,6 +23,28 @@ export const Dashboard = () => {
   const { user, switchRole, loginAs } = useAuth();
   const { artisans, userContributions, transactions, makeRepayment } = useFunding();
 
+  // Dynamic user calculations (so newly registered accounts get clean personalized metrics)
+  const isCustomUser = user && user.isDemo === false;
+  const myContributions = isCustomUser
+    ? userContributions.filter(c => !c.isDefault)
+    : userContributions;
+
+  const totalContributed = isCustomUser
+    ? myContributions.reduce((sum, c) => sum + Number(c.amount || 0), 0)
+    : 18500;
+
+  const artisansBackedCount = isCustomUser
+    ? myContributions.length
+    : 3;
+
+  const repaidToWallet = isCustomUser
+    ? Math.round(totalContributed * 0.617)
+    : 11417;
+
+  const directLivesImpact = isCustomUser
+    ? (myContributions.length > 0 ? myContributions.length * 4 : 0)
+    : 14;
+
   const [activeRoleView, setActiveRoleView] = useState(user?.role || 'SUPPORTER');
   const [repaymentMessage, setRepaymentMessage] = useState(null);
 
@@ -223,25 +245,25 @@ export const Dashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
                 <span className="text-xs text-[#263B36]/60 font-semibold uppercase">Total Contributed</span>
-                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">₹18,500</div>
+                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">₹{totalContributed.toLocaleString('en-IN')}</div>
                 <p className="text-[11px] text-[#C7794A] font-semibold mt-1">Across 3 Craft Clusters</p>
               </div>
 
               <div className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
                 <span className="text-xs text-[#263B36]/60 font-semibold uppercase">Artisans Backed</span>
-                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">3 Master Artisans</div>
+                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">{artisansBackedCount} Master Artisan{artisansBackedCount === 1 ? '' : 's'}</div>
                 <p className="text-[11px] text-emerald-700 font-semibold mt-1">100% On-Track Repayment</p>
               </div>
 
               <div className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
                 <span className="text-xs text-[#263B36]/60 font-semibold uppercase">Repaid to Wallet</span>
-                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">₹11,417</div>
+                <div className="font-serif text-3xl font-bold text-[#173B35] mt-1">₹{repaidToWallet.toLocaleString('en-IN')}</div>
                 <p className="text-[11px] text-[#263B36]/60 mt-1">61.7% Principal Returned</p>
               </div>
 
               <div className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#D5B46A]/30 shadow-xs hover:shadow-warm transition-all">
                 <span className="text-xs text-[#263B36]/60 font-semibold uppercase">Direct Social Impact</span>
-                <div className="font-serif text-3xl font-bold text-emerald-700 mt-1">14 Lives</div>
+                <div className="font-serif text-3xl font-bold text-emerald-700 mt-1">{directLivesImpact} Lives</div>
                 <p className="text-[11px] text-[#263B36]/70 mt-1">Apprentices & Family Members</p>
               </div>
             </div>
@@ -271,7 +293,12 @@ export const Dashboard = () => {
 
               {/* List of Contributions */}
               <div className="divide-y divide-[#FAF6F0] border border-[#E7DEC9] rounded-2xl overflow-hidden">
-                {userContributions.map((c) => (
+                {myContributions.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-[#263B36]/60 bg-[#FAF6F0]/50">
+                    <p className="font-semibold text-sm text-[#173B35] mb-1">No micro-loans backed yet</p>
+                    <p>You haven't funded any artisans yet. Browse the marketplace to make your first contribution!</p>
+                  </div>
+                ) : (myContributions.map((c) => (
                   <div key={c.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs hover:bg-[#FAF6F0]/50 transition-colors">
                     <div className="space-y-1">
                       <div className="font-serif text-base font-bold text-[#173B35]">
@@ -305,7 +332,7 @@ export const Dashboard = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
 
             </div>

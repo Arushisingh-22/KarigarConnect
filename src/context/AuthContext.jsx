@@ -67,10 +67,11 @@ export const AuthProvider = ({ children }) => {
     setIsAuthModalOpen(false);
   };
 
-  const loginWithCredentials = (email, password, role) => {
+  const loginWithCredentials = (email, password, role, fullName) => {
     const newUser = {
       id: `user-${Date.now()}`,
-      name: role === 'ARTISAN' ? 'Radha Bai' : email.split('@')[0],
+      name: fullName || (role === 'ARTISAN' ? 'Radha Bai' : email.split('@')[0]),
+      isDemo: false,
       email,
       role: role || 'SUPPORTER',
       avatar: role === 'ARTISAN' 
