@@ -76,12 +76,25 @@ function generateTransactionHash(payload) {
 }
 
 // Health Check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'Disconnected';
+  let latency = null;
+  const start = Date.now();
+  try {
+    const r = await pool.query('SELECT NOW()');
+    if (r.rows.length > 0) {
+      dbStatus = 'Connected to Supabase PostgreSQL (Cloud Database)';
+      latency = (Date.now() - start) + 'ms';
+    }
+  } catch (err) {
+    dbStatus = 'Error: ' + err.message;
+  }
+
   res.json({
     status: 'online',
     project: 'KarigarConnect',
     hackathon: 'NOVEX Hackathon 2026',
-    database: 'PostgreSQL (Demo Bridge Ready)',
+
     blockchain: 'Ethereum Sepolia Testnet (Simulation Mode)',
     recordedTransactionsCount: transactions.length
   });
@@ -455,21 +468,61 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(500).json({ error: 'Failed to create user account' });
   }
 });
-// Auth endpoint
-app.post('/api/auth/login', (req, res) => {
-  const { email, role } = req.body;
-  const demoToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + btoa(JSON.stringify({
+// Auth endpoint (Database-backed login with demo fallback)
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password, role } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT id, full_name, email, password_hash, role, ethereum_address FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
+      [email.trim()]
+    );
+
+    if (result.rows.length > 0) {
+      const dbUser = result.rows[0];
+
+      // Password verification
+      if (password && dbUser.password_hash && dbUser.password_hash !== password) {
+        return res.status(401).json({ error: 'Incorrect password' });
+      }
+
+      const token = 'jwt_' + Buffer.from(JSON.stringify({ id: dbUser.id, email: dbUser.email, role: dbUser.role })).toString('base64');
+
+      console.log(` User logged in via database: ${dbUser.full_name} (${dbUser.email})`);
+
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: dbUser.id,
+          name: dbUser.full_name,
+          email: dbUser.email,
+          role: dbUser.role,
+          walletAddress: dbUser.ethereum_address || '0x3A21...79b4'
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Database lookup failed on login, falling back to demo:', err.message);
+  }
+
+  // Demo fallback
+  const demoToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + Buffer.from(JSON.stringify({
     email,
     role: role || 'SUPPORTER',
     iat: Math.floor(Date.now() / 1000)
-  })) + '.simulatedSignature2026';
+  })).toString('base64') + '.simulatedSignature2026';
 
   res.json({
     success: true,
     token: demoToken,
     user: {
       email,
-      name: role === 'ARTISAN' ? 'Lakshmi Devi' : 'Vikram Sen',
+      name: role === 'ARTISAN' ? 'Lakshmi Devi' : (email ? email.split('@')[0] : 'Supporter'),
       role: role || 'SUPPORTER'
     }
   });
