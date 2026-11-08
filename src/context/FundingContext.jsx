@@ -30,6 +30,8 @@ async function generateGenuineHash(payload) {
   }
 }
 
+const getApiBase = () => (typeof window !== 'undefined' ? `http://${window.location.hostname || 'localhost'}:5000` : 'http://localhost:5000');
+
 export const FundingProvider = ({ children }) => {
   const [artisans, setArtisans] = useState(() => {
     const saved = localStorage.getItem('karigar_artisans');
@@ -83,7 +85,7 @@ export const FundingProvider = ({ children }) => {
   // Synchronize with backend API on mount if backend is running
   useEffect(() => {
     let isMounted = true;
-    fetch('http://localhost:5000/api/transactions')
+    fetch(`${getApiBase()}/api/transactions`)
       .then(res => res.json())
       .then(result => {
         if (!isMounted) return;
@@ -152,7 +154,7 @@ export const FundingProvider = ({ children }) => {
     const ethEquivalent = (numAmount / 300000).toFixed(4) + ' ETH';
 
     // Persist to PostgreSQL backend asynchronously with matching txHash & blockNumber
-    fetch('http://localhost:5000/api/contribute', {
+    fetch(`${getApiBase()}/api/contribute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -248,7 +250,7 @@ export const FundingProvider = ({ children }) => {
     let backendTx = null;
 
     try {
-      const resp = await fetch('http://localhost:5000/api/repay', {
+      const resp = await fetch(`${getApiBase()}/api/repay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

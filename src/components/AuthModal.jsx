@@ -17,7 +17,8 @@ export const AuthModal = () => {
     e.preventDefault();
     if (tab === 'register') {
       try {
-        const res = await fetch('http://localhost:5000/api/auth/register', {
+        const apiHost = window.location.hostname || 'localhost';
+        const res = await fetch(`http://${apiHost}:5000/api/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fullName, email, password, role })
@@ -29,7 +30,8 @@ export const AuthModal = () => {
           alert(data.error || 'Registration failed');
         }
       } catch (err) {
-        console.error(err);
+        console.error('Backend registration error:', err);
+        alert('Could not reach backend database server on port 5000! Make sure "node server/index.js" is running.');
         loginWithCredentials(email, password, role);
       }
     } else {
