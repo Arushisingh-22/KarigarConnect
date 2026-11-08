@@ -3,14 +3,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Default cloud database connection so all teammates connect seamlessly even without local .env
-const DEFAULT_DATABASE_URL = 'postgresql://postgres.edqpwquiqwlhdqocirql:Karigar%402026Connect@aws-0-ap-south-1.pooler.supabase.com:5432/postgres';
+// Verified Supabase cloud connection string (URL-encoded password: Karigar%4020206)
+const DEFAULT_DATABASE_URL = 'postgresql://postgres.edqpwquiqwlhdqocirql:Karigar%4020206@aws-0-ap-south-1.pooler.supabase.com:5432/postgres';
 
 const connectionString = process.env.DATABASE_URL || DEFAULT_DATABASE_URL;
-
-if (!process.env.DATABASE_URL) {
-  console.log('ℹ️ Using shared Supabase cloud database (no local .env found)');
-}
 
 const pool = new pg.Pool({
   connectionString,
